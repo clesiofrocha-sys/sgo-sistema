@@ -14,4 +14,4 @@ EXPOSE 10000
 ENV PORT=10000
 ENV NODE_ENV=production
 
-CMD ["npx", "tsx", "server/routers.ts"]
+CMD ["npx", "tsx", "server/index.ts"]
