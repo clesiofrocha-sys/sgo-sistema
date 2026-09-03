@@ -2,20 +2,22 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copia dependências e instala tudo
+# Copia arquivos de dependências
 COPY package*.json ./
+
+# Instala todas as dependências (incluindo tsx/typescript para o build)
 RUN npm install
 
-# Copia o código do projeto
+# Copia todo o código-fonte
 COPY . .
 
-# Compila o projeto
-RUN npm run build || true
+# Compila o projeto (Gera a pasta dist)
+RUN npm run build
 
 EXPOSE 10000
 
 ENV PORT=10000
 ENV NODE_ENV=production
 
-# Executa a aplicação diretamente pelo ponto de entrada principal
-CMD ["npx", "tsx", "server/index.ts"]
+# Executa o servidor compilado
+CMD ["node", "dist/index.js"]
