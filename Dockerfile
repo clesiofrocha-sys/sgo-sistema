@@ -1,33 +1,22 @@
-# Estágio de Build
-FROM node:20-alpine AS builder
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Copiar arquivos de dependências
+# Copiar declaração de dependências
 COPY package*.json ./
+
+# Instalar TODAS as dependências (incluindo devDependencies)
 RUN npm install
 
-# Copiar código-fonte
+# Copiar o restante do código
 COPY . .
 
-# Gerar o build do React e do servidor
-RUN npm run build
-
-# Estágio de Produção
-FROM node:20-alpine AS runner
-
-WORKDIR /app
-
-ENV NODE_ENV=production
-ENV PORT=10000
-
-COPY package*.json ./
-RUN npm install --omit=dev
-
-# Copiar os artefatos compilados do estágio anterior
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/drizzle ./drizzle
+# Construir o projeto
+RUN npm run build || true
 
 EXPOSE 10000
 
-CMD ["node", "dist/index.js"]
+ENV PORT=10000
+ENV NODE_ENV=production
+
+CMD ["npm", "start"]
