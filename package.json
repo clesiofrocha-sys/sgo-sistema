@@ -6,6 +6,8 @@
     "start": "tsx server/routers.ts"
   },
   "dependencies": {
+    "@trpc/server": "^10.45.2",
+    "@trpc/client": "^10.45.2",
     "drizzle-orm": "^0.30.0",
     "express": "^4.19.2",
     "postgres": "^3.4.4",
