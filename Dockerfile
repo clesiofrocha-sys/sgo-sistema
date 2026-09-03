@@ -2,16 +2,14 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copiar declaração de dependências
+# Copia dependências e instala tudo
 COPY package*.json ./
-
-# Instalar TODAS as dependências (incluindo devDependencies)
 RUN npm install
 
-# Copiar o restante do código
+# Copia o código do projeto
 COPY . .
 
-# Construir o projeto
+# Compila o projeto
 RUN npm run build || true
 
 EXPOSE 10000
@@ -19,4 +17,5 @@ EXPOSE 10000
 ENV PORT=10000
 ENV NODE_ENV=production
 
-CMD ["npm", "start"]
+# Executa a aplicação diretamente pelo ponto de entrada principal
+CMD ["npx", "tsx", "server/index.ts"]
