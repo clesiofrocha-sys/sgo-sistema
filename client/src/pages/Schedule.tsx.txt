@@ -1,0 +1,214 @@
+import React, { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertCircle, Calendar, Plus, ShieldAlert } from "lucide-react";
+
+export default function Schedule() {
+  const projectId = 1;
+  const utils = trpc.useUtils();
+
+  const { data: tasksList = [], isLoading } = trpc.getTasks.useQuery({ projectId });
+
+  const updateStatusMutation = trpc.updateTaskStatus.useMutation({
+    onSuccess: () => utils.getTasks.invalidate(),
+  });
+
+  const createTaskMutation = trpc.createTask.useMutation({
+    onSuccess: () => {
+      utils.getTasks.invalidate();
+      setIsModalOpen(false);
+    },
+  });
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    type: "task" as const,
+    startDate: "",
+    endDate: "",
+    seiNumber: "",
+  });
+
+  const handleCreateTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    createTaskMutation.mutate({
+      projectId,
+      title: formData.title,
+      type: formData.type,
+      startDate: new Date(formData.startDate),
+      endDate: new Date(formData.endDate),
+      status: "pending",
+      progress: 0,
+      seiNumber: formData.seiNumber,
+    });
+  };
+
+  if (isLoading) return <div className="p-8 text-center">Carregando cronograma...</div>;
+
+  return (
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Cronograma do Projeto</h1>
+          <p className="text-slate-500">Gestão operacional de entregas, reuniões e incidências</p>
+        </div>
+
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-[#003580] hover:bg-[#00255c]">
+              <Plus className="mr-2 h-4 w-4" /> Nova Tarefa
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Nova Tarefa no Cronograma</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateTask} className="space-y-4 pt-4">
+              <div>
+                <label className="text-sm font-medium">Título</label>
+                <Input
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Tipo</label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(val: any) => setFormData({ ...formData, type: val })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="task">Tarefa Comum</SelectItem>
+                    <SelectItem value="delivery_dev">Entrega Desenvolvimento</SelectItem>
+                    <SelectItem value="delivery_doc">Entrega Documental</SelectItem>
+                    <SelectItem value="convocation">Convocação</SelectItem>
+                    <SelectItem value="meeting">Reunião</SelectItem>
+                    <SelectItem value="incidence">Incidência de Risco</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Data Início</label>
+                  <Input
+                    type="date"
+                    required
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Data Término</label>
+                  <Input
+                    type="date"
+                    required
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Número SEI</label>
+                <Input
+                  value={formData.seiNumber}
+                  onChange={(e) => setFormData({ ...formData, seiNumber: e.target.value })}
+                />
+              </div>
+
+              <Button type="submit" className="w-full bg-[#003580]" disabled={createTaskMutation.isPending}>
+                {createTaskMutation.isPending ? "Salvando..." : "Cadastrar Tarefa"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid gap-4">
+        {tasksList.map((t) => {
+          const isDelayed = t.status !== "completed" && new Date(t.endDate) < new Date();
+          const hasRiskImpact = t.riskImpacts && t.riskImpacts.length > 0;
+
+          return (
+            <Card key={t.id} className={`border-l-4 ${
+              t.type === 'incidence' ? 'border-l-amber-500' : 
+              t.type === 'delivery_dev' ? 'border-l-blue-600' : 'border-l-slate-300'
+            }`}>
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-lg">{t.title}</span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-slate-100 font-mono uppercase">
+                      {t.type}
+                    </span>
+                    {t.seiNumber && (
+                      <span className="text-xs text-slate-500 font-mono">SEI: {t.seiNumber}</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-4 text-xs text-slate-500">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {new Date(t.startDate).toLocaleDateString("pt-BR")} até{" "}
+                      {new Date(t.endDate).toLocaleDateString("pt-BR")}
+                    </span>
+                    <span>Resp: {t.responsibleName}</span>
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
+                    {isDelayed && (
+                      <span className="inline-flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded font-medium">
+                        <AlertCircle className="w-3 h-3" /> Atrasada
+                      </span>
+                    )}
+
+                    {hasRiskImpact && (
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-medium">
+                        <ShieldAlert className="w-3 h-3" /> Impactada por {t.riskImpacts.length} Risco(s)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Select
+                    value={t.status}
+                    onValueChange={(status: any) =>
+                      updateStatusMutation.mutate({ taskId: t.id, status })
+                    }
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pendente</SelectItem>
+                      <SelectItem value="in_progress">Em Execução</SelectItem>
+                      <SelectItem value="completed">EXECUTADO</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
