@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copiar arquivos de dependências
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 # Copiar código-fonte
 COPY . .
@@ -22,7 +22,7 @@ ENV NODE_ENV=production
 ENV PORT=10000
 
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Copiar os artefatos compilados do estágio anterior
 COPY --from=builder /app/dist ./dist
