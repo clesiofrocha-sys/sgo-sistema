@@ -5,19 +5,19 @@ WORKDIR /app
 # Copia arquivos de dependências
 COPY package*.json ./
 
-# Instala todas as dependências (incluindo tsx/typescript para o build)
+# Instala todas as dependências do projeto
 RUN npm install
 
-# Copia todo o código-fonte
-COPY . .
+# Instala o tsx globalmente para poder executar o TypeScript direto
+RUN npm install -g tsx
 
-# Compila o projeto (Gera a pasta dist)
-RUN npm run build
+# Copia todo o código da aplicação
+COPY . .
 
 EXPOSE 10000
 
 ENV PORT=10000
 ENV NODE_ENV=production
 
-# Executa o servidor compilado
-CMD ["node", "dist/index.js"]
+# Inicia o servidor direto pelo arquivo principal
+CMD ["tsx", "server/routers.ts"]
