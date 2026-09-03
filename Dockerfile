@@ -4,7 +4,8 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install
+# Instala dependências ignorando conflitos estritos de pares
+RUN npm install --legacy-peer-deps
 
 COPY . .
 
