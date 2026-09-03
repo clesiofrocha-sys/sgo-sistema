@@ -8,9 +8,13 @@ RUN npm install --legacy-peer-deps
 
 COPY . .
 
+# Garante que o arquivo de rotas fique acessível dentro da pasta servidor
+RUN cp roteadores.ts servidor/ 2>/dev/null || true
+
 EXPOSE 10000
 
 ENV PORT=10000
 ENV NODE_ENV=production
 
-CMD ["npx", "tsx", "servidor/roteadores.ts"]
+# Executa o servidor principal do projeto
+CMD ["npx", "tsx", "servidor/riskCascade.ts"]
