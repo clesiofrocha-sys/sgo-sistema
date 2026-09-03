@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm";
-import { tarefas, TarefaImpactosDeRisco } from "../drizzle/schema";
+import { tarefas, tarefaImpactosDeRisco } from "../drizzle/schema";
 
 export function calcularDiasEntre(dataInicio: Date, dataTermino: Date): number {
   const comecar = new Date(dataInicio).getTime();
