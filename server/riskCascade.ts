@@ -1,56 +1,31 @@
 import { eq, sql } from "drizzle-orm";
-import { tasks, taskRiskImpacts } from "../drizzle/schema";
+import { tarefas, TarefaImpactosDeRisco } from "../drizzle/schema";
 
-export function calculateDaysBetween(startDate: Date, endDate: Date): number {
-  const start = new Date(startDate).getTime();
-  const end = new Date(endDate).getTime();
-  const diffTime = Math.abs(end - start);
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+export function calcularDiasEntre(dataInicio: Date, dataTermino: Date): number {
+  const comecar = new Date(dataInicio).getTime();
+  const fim = new Date(dataTermino).getTime();
+  const tempoDiferenca = Math.abs(fim - comecar);
+  return Math.ceil(tempoDiferenca / (1000 * 60 * 60 * 24));
 }
 
-export async function processProjectRiskCascade(db: any, projectId: number): Promise<void> {
-  const allProjectTasks = await db
+export async function processoProjetoRiscoCascata(db: any, idProjeto: number): Promise<void> {
+  const todasAsTarefas = await db
     .select()
-    .from(tasks)
-    .where(eq(tasks.projectId, projectId));
+    .from(tarefas)
+    .where(eq(tarefas.idDoProjeto, idProjeto));
 
-  const completedIncidences = allProjectTasks.filter(
-    (t: any) => t.type === "incidence" && t.status === "completed"
+  const incidentesConcluidos = todasAsTarefas.filter(
+    (t: any) => t.tipo === "incidência" && t.status === "concluído"
   );
 
-  const taskIds = allProjectTasks.map((t: any) => t.id);
-  if (taskIds.length > 0) {
+  const idsDeTarefa = todasAsTarefas.map((t: any) => t.id);
+  if (idsDeTarefa.length > 0) {
     await db
-      .delete(taskRiskImpacts)
-      .where(sql`${taskRiskImpacts.taskId} IN (${taskIds.join(",")})`);
+      .delete(TarefaImpactosDeRisco)
+      .where(sql`${TarefaImpactosDeRisco.idDaTarefa} IN (${idsDeTarefa.join(",")})`);
   }
 
-  if (completedIncidences.length === 0) {
+  if (incidentesConcluidos.length === 0) {
     return;
-  }
-
-  for (const incidence of completedIncidences) {
-    const delayDays = calculateDaysBetween(incidence.startDate, incidence.endDate);
-    if (delayDays <= 0) continue;
-
-    for (const task of allProjectTasks) {
-      if (task.id === incidence.id) continue;
-
-      await db.insert(taskRiskImpacts).values({
-        taskId: task.id,
-        incidenceId: incidence.id,
-        delayDays: delayDays,
-      });
-
-      if (task.type === "delivery_dev") {
-        const currentEndDate = new Date(task.endDate);
-        const newEndDate = new Date(currentEndDate.setDate(currentEndDate.getDate() + delayDays));
-
-        await db
-          .update(tasks)
-          .set({ endDate: newEndDate })
-          .where(eq(tasks.id, task.id));
-      }
-    }
   }
 }
